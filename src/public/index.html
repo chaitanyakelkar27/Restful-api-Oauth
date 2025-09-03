@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GitHub OAuth Login</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .container {
+            background: white;
+            padding: 3rem 2rem;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+        }
+
+        .logo {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #24292e 0%, #444d56 100%);
+            border-radius: 50%;
+            margin: 0 auto 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            color: white;
+        }
+
+        h1 {
+            color: #24292e;
+            margin-bottom: 0.5rem;
+            font-size: 2rem;
+            font-weight: 600;
+        }
+
+        .subtitle {
+            color: #586069;
+            margin-bottom: 2rem;
+            font-size: 1rem;
+        }
+
+        .github-btn {
+            background: #24292e;
+            color: white;
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            width: 100%;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            box-shadow: 0 4px 12px rgba(36, 41, 46, 0.15);
+        }
+
+        .github-btn:hover {
+            background: #444d56;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(36, 41, 46, 0.25);
+        }
+
+        .github-btn:active {
+            transform: translateY(0);
+        }
+
+        .github-icon {
+            width: 24px;
+            height: 24px;
+            fill: currentColor;
+        }
+
+        .status {
+            margin-top: 2rem;
+            padding: 1rem;
+            border-radius: 8px;
+            font-weight: 500;
+            display: none;
+        }
+
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .tokens {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-top: 1rem;
+            text-align: left;
+            font-family: 'Courier New', monospace;
+            font-size: 0.8rem;
+            word-break: break-all;
+            display: none;
+        }
+
+        .loading {
+            display: none;
+            margin-top: 1rem;
+            color: #586069;
+        }
+
+        .spinner {
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #24292e;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            margin-right: 10px;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .footer {
+            margin-top: 2rem;
+            padding-top: 1rem;
+            border-top: 1px solid #e1e4e8;
+            color: #586069;
+            font-size: 0.9rem;
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 2rem 1.5rem;
+            }
+
+            h1 {
+                font-size: 1.5rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="logo">
+            <svg class="github-icon" viewBox="0 0 24 24" width="32" height="32">
+                <path
+                    d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z" />
+            </svg>
+        </div>
+
+        <h1>Welcome Back</h1>
+        <p class="subtitle">Sign in with your GitHub account to continue</p>
+
+        <a href="http://localhost:5000/auth/github" class="github-btn" id="githubBtn">
+            <svg class="github-icon" viewBox="0 0 24 24">
+                <path
+                    d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z" />
+            </svg>
+            Continue with GitHub
+        </a>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            Authenticating with GitHub...
+        </div>
+
+        <div class="status" id="status"></div>
+        <div class="tokens" id="tokens"></div>
+
+        <div class="footer">
+            <p>Secure OAuth 2.0 authentication</p>
+        </div>
+    </div>
+
+    <script>
+        // Handle the OAuth success callback
+        window.addEventListener('DOMContentLoaded', function () {
+            const urlParams = new URLSearchParams(window.location.search);
+            const accessToken = urlParams.get('access_token');
+            const refreshToken = urlParams.get('refresh_token');
+            const error = urlParams.get('error');
+
+            const statusDiv = document.getElementById('status');
+            const tokensDiv = document.getElementById('tokens');
+
+            if (error) {
+                statusDiv.className = 'status error';
+                statusDiv.textContent = `Authentication failed: ${error}`;
+                statusDiv.style.display = 'block';
+            } else if (accessToken) {
+                statusDiv.className = 'status success';
+                statusDiv.textContent = '✅ Successfully authenticated with GitHub!';
+                statusDiv.style.display = 'block';
+
+                tokensDiv.innerHTML = `
+                    <strong>Access Token:</strong><br>
+                    ${accessToken.substring(0, 50)}...<br><br>
+                    <strong>Refresh Token:</strong><br>
+                    ${refreshToken ? refreshToken.substring(0, 50) + '...' : 'Not provided'}
+                `;
+                tokensDiv.style.display = 'block';
+
+                // Store tokens in localStorage for demo purposes
+                localStorage.setItem('access_token', accessToken);
+                if (refreshToken) {
+                    localStorage.setItem('refresh_token', refreshToken);
+                }
+
+                // Clean up URL
+                window.history.replaceState({}, document.title, '/');
+            }
+
+            // Add click handler for GitHub button
+            document.getElementById('githubBtn').addEventListener('click', function (e) {
+                document.getElementById('loading').style.display = 'block';
+                // The actual redirect will happen via the href
+            });
+
+            // Test API endpoint if we have a token
+            if (accessToken) {
+                setTimeout(testAPI, 2000);
+            }
+        });
+
+        // Function to test a protected API endpoint
+        async function testAPI() {
+            const token = localStorage.getItem('access_token');
+            if (!token) return;
+
+            try {
+                const response = await fetch('http://localhost:5000/api/v1/notes', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log('API Test Success:', data);
+
+                    const statusDiv = document.getElementById('status');
+                    statusDiv.innerHTML += '<br><br>🎉 API access confirmed! Check console for details.';
+                } else {
+                    console.log('API Test Failed:', response.status, response.statusText);
+                }
+            } catch (error) {
+                console.log('API Test Error:', error);
+            }
+        }
+
+        // Add some interactive effects
+        document.addEventListener('DOMContentLoaded', function () {
+            const container = document.querySelector('.container');
+            container.style.opacity = '0';
+            container.style.transform = 'translateY(20px)';
+
+            setTimeout(() => {
+                container.style.transition = 'all 0.6s ease';
+                container.style.opacity = '1';
+                container.style.transform = 'translateY(0)';
+            }, 100);
+        });
+    </script>
+</body>
+
+</html>
