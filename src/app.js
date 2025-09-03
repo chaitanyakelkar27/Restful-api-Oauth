@@ -31,14 +31,16 @@ app.use((err, req, res, next) => {
   res.status(500).json({ success: false, error: 'Server Error', message: 'An unexpected error occurred' });
 });
 
-// connect to Mongo and start server
-const PORT = process.env.PORT || 5000;
+// Connect to MongoDB
 mongoose.connect(process.env.MONGO_URI, {
-  useNewUrlParser: true, useUnifiedTopology: true
+  useNewUrlParser: true,
+  useUnifiedTopology: true
 }).then(() => {
   console.log('Mongo connected');
-  app.listen(PORT, () => console.log(`Server listening on ${PORT}`));
 }).catch(err => {
   console.error('Mongo connection error', err);
   process.exit(1);
 });
+
+// Export the app (don't start the server here)
+module.exports = app;
