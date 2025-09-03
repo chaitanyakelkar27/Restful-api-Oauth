@@ -6,7 +6,6 @@ const cors = require('cors');
 const cookieParser = require('cookie-parser'); // Add this for OAuth state cookies
 const authRoutes = require('./routes/authRoutes');
 const noteRoutes = require('./routes/noteRoutes');
-const oauthGithub = require('./routes/oauthGithub'); // Add GitHub OAuth routes
 const path = require('path');
 
 const app = express();
@@ -17,12 +16,26 @@ app.use(cookieParser()); // Add cookie parser middleware for OAuth state
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Serve static files
+app.use(express.static(path.join(__dirname, 'public')));
+
 // routes
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/notes', noteRoutes);
-app.use('/', oauthGithub); // Mount GitHub OAuth routes at root level
 
-// health
+// Home route
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// Handle old auth/success route with a redirect to our new success.html
+app.get('/auth/success', (req, res) => {
+  const { access_token, refresh_token, user } = req.query;
+  res.redirect(`/success.html?access_token=${access_token || ''}&refresh_token=${refresh_token || ''}&user_data=${user || ''}`);
+});
+
+// OAuth will redirect to our success.html static page
+// handled by static file middleware// health
 app.get('/health', (req, res) => res.json({ ok: true }));
 
 // centralized error fallback
