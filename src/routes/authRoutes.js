@@ -1,7 +1,9 @@
 const express = require('express');
-const passport = require('passport');
+const crypto = require('crypto');
+const axios = require('axios');
 const router = express.Router();
-const { register, login, refresh, revoke } = require('../controllers/authController');
+const { register, login, refresh, revoke, signAccessToken, signRefreshToken } = require('../controllers/authController');
+const User = require('../models/User');
 
 // Local Auth (already implemented)
 router.post('/register', register);
@@ -11,34 +13,109 @@ router.post('/revoke', revoke);     // revoke refresh token
 
 // --- GitHub OAuth2 ---
 // Step 1: Redirect to GitHub for login
-router.get('/github',
-    passport.authenticate('github', { scope: ['user:email'] })
-);
+router.get('/github', (req, res) => {
+    const state = crypto.randomBytes(16).toString('hex');
+    // store state (in session, in DB, or as secure httpOnly cookie). Example uses cookie:
+    res.cookie('oauth_state', state, { httpOnly: true, sameSite: 'lax' });
+
+    const params = new URLSearchParams({
+        client_id: process.env.GITHUB_CLIENT_ID,
+        redirect_uri: process.env.GITHUB_CALLBACK_URL,
+        scope: 'read:user user:email', // adjust scopes you need
+        state
+        // optionally: code_challenge and code_challenge_method=S256 for PKCE
+    });
+
+    res.redirect(`https://github.com/login/oauth/authorize?${params.toString()}`);
+});
 
 // Step 2: GitHub redirects back to callback URL
-router.get(
-    '/github/callback',
-    passport.authenticate('github', { failureRedirect: '/login' }),
-    (req, res) => {
-        // At this point, GitHub auth was successful
-        // You can issue a JWT for your API here
-        const user = req.user;
-
-        // Example: respond with JWT instead of redirect
-        const jwt = require('jsonwebtoken');
-        const token = jwt.sign(
-            { id: user._id, email: user.email },
-            process.env.JWT_SECRET,
-            { expiresIn: '1h' }
-        );
-
-        res.json({
-            success: true,
-            message: "GitHub login successful",
-            token,
-            user
-        });
+router.get('/github/callback', async (req, res) => {
+    const { code, state } = req.query;
+    const savedState = req.cookies && req.cookies.oauth_state;
+    if (!state || state !== savedState) {
+        return res.status(400).send('Invalid state');
     }
-);
+
+    try {
+        // Exchange code for access_token (server-to-server)
+        const tokenResp = await axios.post('https://github.com/login/oauth/access_token', {
+            client_id: process.env.GITHUB_CLIENT_ID,
+            client_secret: process.env.GITHUB_CLIENT_SECRET,
+            code,
+            redirect_uri: process.env.GITHUB_CALLBACK_URL,
+            state
+        }, {
+            headers: { Accept: 'application/json' } // GitHub returns JSON when this header present
+        });
+
+        const { access_token: githubAccessToken } = tokenResp.data;
+        if (!githubAccessToken) return res.status(400).send('No GitHub access token received');
+
+        // Get user profile
+        const userResp = await axios.get('https://api.github.com/user', {
+            headers: {
+                Authorization: `token ${githubAccessToken}`,
+                Accept: 'application/vnd.github+json'
+            }
+        });
+        const ghUser = userResp.data;
+
+        // Sometimes email is not public - fetch emails
+        let email = ghUser.email;
+        if (!email) {
+            const emailsResp = await axios.get('https://api.github.com/user/emails', {
+                headers: {
+                    Authorization: `token ${githubAccessToken}`,
+                    Accept: 'application/vnd.github+json'
+                }
+            });
+            const emails = emailsResp.data || [];
+            const primary = emails.find(e => e.primary) || emails[0];
+            email = primary && primary.email;
+        }
+
+        // Find or create local user
+        let user = await User.findOne({ email });
+        if (!user) {
+            user = new User({ email, password: crypto.randomBytes(16).toString('hex') });
+            await user.save();
+        }
+
+        // Issue your own JWT + refresh token (so your resource server trusts it)
+        const accessToken = signAccessToken(user);   // use your earlier signAccessToken implementation
+        const refreshToken = signRefreshToken(user);
+
+        // Save refresh token to user.refreshTokens... (as in your authController)
+        user.refreshTokens.push(refreshToken);
+        await user.save();
+
+        // Prepare user data to pass to success page
+        const userData = {
+            github_id: ghUser.id,
+            username: ghUser.login,
+            name: ghUser.name || ghUser.login,
+            email: email,
+            avatar_url: ghUser.avatar_url,
+            public_repos: ghUser.public_repos,
+            followers: ghUser.followers,
+            following: ghUser.following,
+            created_at: ghUser.created_at,
+            updated_at: ghUser.updated_at,
+            bio: ghUser.bio,
+            location: ghUser.location,
+            company: ghUser.company,
+            blog: ghUser.blog
+        };
+
+        // return tokens to client or set cookie + redirect to frontend
+        // Redirect to our local auth success page with user data
+        const userDataEncoded = encodeURIComponent(JSON.stringify(userData));
+        return res.redirect(`/auth/success?access_token=${accessToken}&refresh_token=${refreshToken}&user=${userDataEncoded}`);
+    } catch (err) {
+        console.error('GitHub OAuth callback error', err.response?.data || err.message || err);
+        return res.status(500).send('GitHub OAuth failed');
+    }
+});
 
 module.exports = router;

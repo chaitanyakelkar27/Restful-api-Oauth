@@ -135,3 +135,7 @@ exports.revoke = async (req, res) => {
     res.status(500).json({ success: false, error: 'Server Error', message: 'Failed to revoke token' });
   }
 };
+
+// Export helper functions for use in other modules
+exports.signAccessToken = signAccessToken;
+exports.signRefreshToken = signRefreshToken;

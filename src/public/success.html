@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OAuth Authentication Success</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root { --background:#fff; --foreground:#09090b; --card:#fff; --muted:#f1f5f9; --muted-foreground:#64748b; --border:#e2e8f0; --radius:.75rem; }
+    body { font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif; background: #f8fafc; color: var(--foreground); min-height: 100vh; padding: 1rem; line-height: 1.6; }
+    .container { max-width: 1400px; margin: 0 auto; background: var(--card); border-radius: var(--radius); box-shadow: 0 4px 12px rgba(0,0,0,.05); border: 1px solid var(--border); overflow: hidden; }
+    .header { background: linear-gradient(135deg, #16a34a 0%, #15803d 100%); color: white; padding: 2rem; text-align: center; }
+    .success-icon { background: rgba(255,255,255,.2); border-radius: 9999px; width: 4rem; height: 4rem; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem; }
+    .check-icon { width: 2rem; height: 2rem; stroke-width: 3; }
+    .header h1 { font-size: 1.875rem; font-weight: 700; margin-bottom: .5rem; line-height: 1.2; }
+    .header .subtitle { font-size: 1rem; opacity: .9; margin-bottom: 1rem; }
+    .status-indicator { display: inline-flex; align-items: center; gap: .5rem; background: rgba(255,255,255,.2); padding: .5rem 1rem; border-radius: 2rem; font-size: .875rem; font-weight: 500; }
+    .status-dot { width: .5rem; height: .5rem; border-radius: 9999px; background: #22c55e; }
+    .content { padding: 2rem; }
+    .profile-section { text-align: center; margin-bottom: 1rem; padding: 1.5rem; background: var(--muted); border-radius: calc(var(--radius) - .25rem); border: 1px solid var(--border); }
+    .profile-name { font-size: 1.5rem; font-weight: 700; color: var(--foreground); margin-bottom: .25rem; }
+    .profile-username { color: var(--muted-foreground); font-size: .95rem; margin-bottom: .5rem; }
+    .profile-bio { margin: .5rem auto 1rem; max-width: 60ch; color: var(--muted-foreground); }
+    .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: .75rem; margin-top: .75rem; }
+    .stat-card { background: var(--card); border: 1px solid var(--border); border-radius: .5rem; padding: .75rem; }
+    .stat-number { font-size: 1.25rem; font-weight: 700; color: var(--foreground); }
+    .stat-label { font-size: .75rem; color: var(--muted-foreground); }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+    .card { background: var(--card); border-radius: calc(var(--radius) - .25rem); border: 1px solid var(--border); padding: 1.25rem; transition: transform .2s ease, box-shadow .2s ease; }
+    .card:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(0,0,0,.1); }
+    .card-title { font-size: 1rem; font-weight: 600; margin-bottom: 1rem; display: flex; align-items: center; gap: .5rem; color: var(--foreground); }
+    .card-content { color: var(--muted-foreground); font-size: .875rem; }
+    .info-item { display: flex; justify-content: space-between; align-items: center; padding: .5rem 0; border-bottom: 1px solid var(--border); }
+    .info-item:last-child { border-bottom: none; }
+    .info-label { font-weight: 500; color: var(--foreground); font-size: .8rem; }
+    .info-value { color: var(--muted-foreground); font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; font-size: .75rem; text-align: right; flex: 1; margin-left: 1rem; word-break: break-all; }
+    .token-display { background: #0b1028; color: #e5e7eb; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; font-size: .75rem; padding: .75rem 1rem; border-radius: .5rem; border: 1px solid #111827; overflow-x: auto; white-space: pre-wrap; word-break: break-all; position: relative; }
+    .footer { padding: 1rem 2rem; background: var(--muted); border-top: 1px solid var(--border); color: var(--muted-foreground); font-size: .9rem; }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="success-icon">
+        <svg class="check-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4" /></svg>
+      </div>
+      <h1>Authentication Successful</h1>
+      <p class="subtitle">You're now securely connected.</p>
+      <div class="status-indicator"><div class="status-dot"></div><div>Connected to GitHub</div></div>
+    </div>
+
+    <div class="content">
+      <div class="profile-section">
+        <div class="profile-name" id="profileName">Loading...</div>
+        <div class="profile-username" id="profileUsername">@Loading...</div>
+        <div class="profile-bio" id="profileBio"></div>
+        <div class="stats-grid">
+          <div class="stat-card"><div class="stat-number" id="repoCount">0</div><div class="stat-label">Repositories</div></div>
+          <div class="stat-card"><div class="stat-number" id="followerCount">0</div><div class="stat-label">Followers</div></div>
+          <div class="stat-card"><div class="stat-number" id="followingCount">0</div><div class="stat-label">Following</div></div>
+        </div>
+      </div>
+
+      <div class="grid">
+        <div class="card">
+          <div class="card-title">Authentication Status</div>
+          <div class="card-content">
+            <div class="info-item"><div class="info-label">Status</div><div class="info-value" style="color:#16a34a;font-weight:600">✅ Authenticated</div></div>
+            <div class="info-item"><div class="info-label">Provider</div><div class="info-value">GitHub OAuth 2.0</div></div>
+            <div class="info-item"><div class="info-label">Session Started</div><div class="info-value" id="sessionTime"></div></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Personal Information</div>
+          <div class="card-content">
+            <div class="info-item"><div class="info-label">Full Name</div><div class="info-value" id="fullName">Loading...</div></div>
+            <div class="info-item"><div class="info-label">Email</div><div class="info-value" id="userEmail">Loading...</div></div>
+            <div class="info-item"><div class="info-label">Location</div><div class="info-value" id="userLocation">Loading...</div></div>
+            <div class="info-item"><div class="info-label">Website</div><div class="info-value" id="userBlog">Loading...</div></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Technical Details</div>
+          <div class="card-content">
+            <div class="info-item"><div class="info-label">OAuth Provider</div><div class="info-value">GitHub</div></div>
+            <div class="info-item"><div class="info-label">Auth Method</div><div class="info-value">OAuth 2.0</div></div>
+            <div class="info-item"><div class="info-label">Token Type</div><div class="info-value">JWT Bearer</div></div>
+            <div class="info-item"><div class="info-label">Algorithm</div><div class="info-value">HS256</div></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Token Information</div>
+          <div class="card-content">
+            <div class="info-item"><div class="info-label">Issued At</div><div class="info-value" id="issuedAt">Loading...</div></div>
+            <div class="info-item"><div class="info-label">Expires At</div><div class="info-value" id="expiresAt">Loading...</div></div>
+            <div class="info-item"><div class="info-label">GitHub ID</div><div class="info-value" id="githubId">Loading...</div></div>
+            <div class="info-item"><div class="info-label">User ID</div><div class="info-value" id="userId">Loading...</div></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Access Token</div>
+          <div class="card-content"><div class="token-display" id="accessTokenDisplay">Loading...</div></div>
+        </div>
+
+        <div class="card" id="refreshTokenCard" style="display:none;">
+          <div class="card-title">Refresh Token</div>
+          <div class="card-content"><div class="token-display" id="refreshTokenDisplay">Loading...</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer">
+      <p>Secure OAuth 2.0 Authentication Demo • Generated at <span id="generatedTime"></span></p>
+    </div>
+  </div>
+
+  <script src="/js/success.js" defer></script>
+</body>
+</html>

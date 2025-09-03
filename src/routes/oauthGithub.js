@@ -52,19 +52,25 @@ router.get('/auth/github/callback', async (req, res) => {
             }
         });
         const ghUser = userResp.data;
+        console.log('GitHub user response:', ghUser);
 
         // Sometimes email is not public - fetch emails
         let email = ghUser.email;
         if (!email) {
-            const emailsResp = await axios.get('https://api.github.com/user/emails', {
-                headers: {
-                    Authorization: `token ${githubAccessToken}`,
-                    Accept: 'application/vnd.github+json'
-                }
-            });
-            const emails = emailsResp.data || [];
-            const primary = emails.find(e => e.primary) || emails[0];
-            email = primary && primary.email;
+            try {
+                const emailsResp = await axios.get('https://api.github.com/user/emails', {
+                    headers: {
+                        Authorization: `token ${githubAccessToken}`,
+                        Accept: 'application/vnd.github+json'
+                    }
+                });
+                const emails = emailsResp.data || [];
+                const primary = emails.find(e => e.primary) || emails[0];
+                email = primary && primary.email;
+                console.log('Fetched email from API:', email);
+            } catch (emailError) {
+                console.error('Error fetching emails:', emailError.message);
+            }
         }
 
         // Find or create local user
@@ -82,12 +88,41 @@ router.get('/auth/github/callback', async (req, res) => {
         user.refreshTokens.push(refreshToken);
         await user.save();
 
-        // return tokens to client or set cookie + redirect to frontend
-        // Example: redirect to frontend with tokens in query (not recommended for prod).
-        return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/auth/success?access_token=${accessToken}&refresh_token=${refreshToken}`);
+        // Include GitHub user profile data in the redirect
+        const userData = {
+            id: ghUser.id,
+            name: ghUser.name || null,
+            login: ghUser.login || null,
+            email: email || null,
+            location: ghUser.location || null,
+            company: ghUser.company || null,
+            blog: ghUser.blog || null,
+            bio: ghUser.bio || null,
+            public_repos: ghUser.public_repos || 0,
+            followers: ghUser.followers || 0,
+            following: ghUser.following || 0,
+            avatar_url: ghUser.avatar_url || null,
+            html_url: ghUser.html_url || null,
+            created_at: ghUser.created_at || null,
+            updated_at: ghUser.updated_at || null,
+            userId: user._id
+        };
+        
+        console.log('Prepared user data for redirect:', userData);
+        
+        // Encode the user data to pass in URL
+        const encodedUserData = encodeURIComponent(JSON.stringify(userData));
+        console.log('Encoded user data length:', encodedUserData.length);
+        
+        // Create the redirect URL
+        const redirectUrl = `/success.html?access_token=${encodeURIComponent(accessToken)}&refresh_token=${encodeURIComponent(refreshToken)}&user_data=${encodedUserData}`;
+        console.log('Redirect URL:', redirectUrl);
+        
+        // Redirect to our new success page with tokens and user data
+        return res.redirect(redirectUrl);
     } catch (err) {
         console.error('GitHub OAuth callback error', err.response?.data || err.message || err);
-        return res.status(500).send('GitHub OAuth failed');
+        return res.redirect('/?error=Authentication%20failed');
     }
 });
 
